@@ -1,65 +1,57 @@
-#include <iostream>
-#include <vector>
-#include <cmath>
-#include <limits>
-
+#include <bits/stdc++.h>
 using namespace std;
 
-// Função para calcular a distância Euclidiana
-double dist(double x1, double y1, double x2, double y2) {
-    return sqrt((x1 - x2)*(x1 - x2) + (y1 - y2)*(y1 - y2));
-}
+// Heurística do Vizinho Mais Próximo para o Caixeiro Viajante
+vector<int> tspVizinhoMaisProximo(const vector<vector<int>>& G, int inicio) {
+    int n = G.size();
 
-// Heurística do Vizinho Mais Próximo
-vector<int> vizinhoMaisProximo(const vector<pair<double,double>>& cidades) {
-    int n = cidades.size();
-    vector<int> tour;
     vector<bool> visitado(n, false);
+    vector<int> caminho;
 
-    int atual = 0; // começa pela cidade 0
-    visitado[0] = true;
-    tour.push_back(0);
+    int atual = inicio;
+    caminho.push_back(atual);
+    visitado[atual] = true;
 
-    for(int step = 1; step < n; step++) {
-        double melhorDist = numeric_limits<double>::infinity();
-        int prox = -1;
+    // Enquanto ainda houver cidades não visitadas
+    for (int k = 1; k < n; k++) {
+        int proximo = -1;
+        int menorDist = INT_MAX;
 
-        for(int i = 0; i < n; i++) {
-            if(!visitado[i]) {
-                double d = dist(cidades[atual].first,
-                                cidades[atual].second,
-                                cidades[i].first,
-                                cidades[i].second);
-
-                if(d < melhorDist) {
-                    melhorDist = d;
-                    prox = i;
-                }
+        // Escolher a cidade não visitada mais próxima
+        for (int v = 0; v < n; v++) {
+            if (!visitado[v] && G[atual][v] < menorDist) {
+                menorDist = G[atual][v];
+                proximo = v;
             }
         }
 
-        visitado[prox] = true;
-        tour.push_back(prox);
-        atual = prox;
+        visitado[proximo] = true;
+        caminho.push_back(proximo);
+        atual = proximo;
     }
 
-    // Fecha o ciclo
-    tour.push_back(0);
+    // Fechar o ciclo voltando à cidade inicial
+    caminho.push_back(inicio);
 
-    return tour;
+    return caminho;
 }
 
 int main() {
-    vector<pair<double,double>> cidades = {
-        {0,0}, {1,5}, {5,2}, {6,6}, {2,4}
+    // Exemplo de grafo completo (matriz de adjacência)
+    vector<vector<int>> G = {
+        {0, 10, 15, 20},
+        {10, 0, 35, 25},
+        {15, 35, 0, 30},
+        {20, 25, 30, 0}
     };
 
-    vector<int> tour = vizinhoMaisProximo(cidades);
+    // Começar da cidade 0
+    vector<int> ciclo = tspVizinhoMaisProximo(G, 0);
 
-    cout << "Rota (Vizinho Mais Proximo): ";
-    for(int c : tour) cout << c << " ";
-    cout << "\n";
+    cout << "Ciclo pelo Vizinho Mais Proximo: ";
+    for (int cidade : ciclo)
+        cout << cidade << " ";
+    cout << endl;
 
     return 0;
 }
-
