@@ -1,94 +1,92 @@
-#include <iostream>
-#include <vector>
-#include <cmath>
-#include <limits>
-
+#include <bits/stdc++.h>
 using namespace std;
 
-// Distância Euclidiana
-double dist(double x1, double y1, double x2, double y2) {
-    return sqrt((x1 - x2)*(x1 - x2) + (y1 - y2)*(y1 - y2));
-}
-
-// Calcula a árvore geradora mínima usando o algoritmo de Prim
-vector<vector<int>> construirMST(const vector<pair<double,double>>& cidades) {
-    int n = cidades.size();
-
+// Construção da Árvore Geradora Mínima usando Prim
+vector<vector<pair<int,int>>> primMST(const vector<vector<int>>& G) {
+    int n = G.size();
+    vector<int> key(n, INT_MAX);
     vector<bool> inMST(n, false);
-    vector<double> chave(n, numeric_limits<double>::infinity());
     vector<int> parent(n, -1);
 
-    chave[0] = 0; // começa pela cidade 0
+    key[0] = 0; // começa pelo vértice 0
 
-    for(int i = 0; i < n-1; i++) {
-        // Escolhe o vértice com menor chave
-        double menor = numeric_limits<double>::infinity();
+    for (int i = 0; i < n - 1; i++) {
         int u = -1;
 
-        for(int v = 0; v < n; v++)
-            if(!inMST[v] && chave[v] < menor) {
-                menor = chave[v];
+        // encontra o vértice não incluído na Árvore Geradora Mínima com menor chave
+        for (int v = 0; v < n; v++)
+            if (!inMST[v] && (u == -1 || key[v] < key[u]))
                 u = v;
-            }
 
         inMST[u] = true;
 
-        // Atualiza chaves
-        for(int v = 0; v < n; v++) {
-            double d = dist(cidades[u].first, cidades[u].second,
-                            cidades[v].first, cidades[v].second);
-
-            if(!inMST[v] && d < chave[v]) {
-                chave[v] = d;
+        // atualiza vizinhos
+        for (int v = 0; v < n; v++) {
+            if (G[u][v] && !inMST[v] && G[u][v] < key[v]) {
+                key[v] = G[u][v];
                 parent[v] = u;
             }
         }
     }
 
-    // Cria lista de adjacência da árvore geradora mínima
-    vector<vector<int>> adj(n);
-    for(int v = 1; v < n; v++) {
-        adj[v].push_back(parent[v]);
-        adj[parent[v]].push_back(v);
+    // monta lista de adjacência da Árvore Geradora Mínima
+    vector<vector<pair<int,int>>> T(n);
+    for (int v = 1; v < n; v++) {
+        int u = parent[v];
+        T[u].push_back({v, G[u][v]});
+        T[v].push_back({u, G[u][v]});
     }
 
-    return adj;
+    return T;
 }
 
-// DFS para gerar ordem do caixeiro viajante aproximado
-void dfs(int u, vector<bool>& vis, vector<int>& ordem, const vector<vector<int>>& adj) {
-    vis[u] = true;
+// DFS para registrar ordem de visita na árvore
+void dfs(int u, vector<bool>& visited,
+         vector<int>& ordem,
+         const vector<vector<pair<int,int>>>& T)
+{
+    visited[u] = true;
     ordem.push_back(u);
 
-    for(int v : adj[u])
-        if(!vis[v])
-            dfs(v, vis, ordem, adj);
+    for (auto& [v, w] : T[u])
+        if (!visited[v])
+            dfs(v, visited, ordem, T);
 }
 
-vector<int> tspAproxMST(const vector<pair<double,double>>& cidades) {
-    auto adj = construirMST(cidades);
+// Algoritmo Aproximativo do Caixeiro Viajante via Árvore Geradora Mínima
+vector<int> tspAproximadoAGM(const vector<vector<int>>& G) {
+    int n = G.size();
 
-    vector<bool> vis(cidades.size(), false);
+    // 1. Construir Árvore Geradora Mínima
+    auto T = primMST(G);
+
+    // 2. DFS na Árvore Geradora Mínima
+    vector<bool> visited(n, false);
     vector<int> ordem;
+    dfs(0, visited, ordem, T);
 
-    dfs(0, vis, ordem, adj);
+    // 3. Construir o ciclo aproximado
+    vector<int> ciclo = ordem;
+    ciclo.push_back(ordem[0]); // volta ao início
 
-    // Fecha o ciclo
-    ordem.push_back(0);
-    return ordem;
+    return ciclo;
 }
 
 int main() {
-    vector<pair<double,double>> cidades = {
-        {0,0}, {1,5}, {5,2}, {6,6}, {2,4}
+    // Exemplo de uso com grafo completo (matriz de adjacência)
+    vector<vector<int>> G = {
+        {0, 10, 15, 20},
+        {10, 0, 35, 25},
+        {15, 35, 0, 30},
+        {20, 25, 30, 0}
     };
 
-    vector<int> tour = tspAproxMST(cidades);
+    vector<int> ciclo = tspAproximadoAGM(G);
 
-    cout << "Rota (Aproximativo via Árvore Geradora Mínima): ";
-    for(int c : tour) cout << c << " ";
+    cout << "Ciclo aproximado: ";
+    for (int v : ciclo)
+        cout << v << " ";
     cout << "\n";
 
     return 0;
 }
-
